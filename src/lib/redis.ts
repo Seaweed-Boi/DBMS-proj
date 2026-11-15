@@ -21,11 +21,12 @@ export const KEYS = {
 
 const globalForRedis = globalThis as unknown as { redis?: Redis };
 
-function createClient() {
+function createClient(subscriber = false) {
   const client = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
-    maxRetriesPerRequest: 1,
-    enableOfflineQueue: false,
-    lazyConnect: false,
+    // Command connection fails fast so callers fall back to PostgreSQL;
+    // a subscriber queues SUBSCRIBE until the socket is ready.
+    maxRetriesPerRequest: subscriber ? null : 1,
+    enableOfflineQueue: subscriber,
     retryStrategy: (times) => Math.min(times * 500, 5000),
   });
   client.on("error", (err) => {
@@ -39,7 +40,7 @@ if (process.env.NODE_ENV !== "production") globalForRedis.redis = redis;
 
 /** New dedicated connection (needed for SUBSCRIBE). Caller must quit() it. */
 export function createSubscriber() {
-  return createClient();
+  return createClient(true);
 }
 
 export function redisReady() {

@@ -22,6 +22,18 @@ const PG_STATUS: Record<string, number> = {
   "42501": 403, // insufficient_privilege
 };
 
+// Friendly messages for named constraints (fallback: PostgreSQL's own message).
+const CONSTRAINT_MESSAGES: Record<string, string> = {
+  centre_occupancy_bounds: "Occupancy must be between 0 and the centre's total capacity",
+  request_fulfilment_bounds: "Fulfilled quantity cannot exceed the requested quantity",
+  centre_inventory_batch_unique: "A batch with this centre, item and expiry date already exists",
+  users_email_key: "An account with this email already exists",
+  relief_centres_centre_name_key: "A centre with this name already exists",
+  resource_items_sku_key: "An item with this SKU already exists",
+  resource_categories_category_name_key: "A category with this name already exists",
+  affected_zones_disaster_id_zone_name_key: "This disaster already has a zone with that name",
+};
+
 export function errorResponse(err: unknown) {
   if (err instanceof HttpError) return NextResponse.json({ error: err.message }, { status: err.status });
   if (err instanceof ZodError) {
@@ -31,7 +43,10 @@ export function errorResponse(err: unknown) {
   const e = err as { code?: string; message?: string; status?: number; detail?: string };
   if (e?.status) return NextResponse.json({ error: e.message }, { status: e.status });
   if (e?.code && PG_STATUS[e.code]) {
-    return NextResponse.json({ error: e.detail ? `${e.message} — ${e.detail}` : e.message }, { status: PG_STATUS[e.code] });
+    const constraint = (err as { constraint?: string }).constraint;
+    const message = (constraint && CONSTRAINT_MESSAGES[constraint])
+      ?? (e.code === "23503" ? `Referenced record is missing or still in use — ${e.detail ?? e.message}` : e.message);
+    return NextResponse.json({ error: message }, { status: PG_STATUS[e.code] });
   }
   console.error(err);
   return NextResponse.json({ error: "Internal server error" }, { status: 500 });
