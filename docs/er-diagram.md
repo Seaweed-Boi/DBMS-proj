@@ -143,14 +143,5 @@ erDiagram
 
 ## Chen-notation drawing checklist (§6.3 diagramming note)
 
-When you redraw this in Chen notation for the report:
+<img width="1217" height="1072" alt="image" src="CHEND.png" />
 
-1. Draw 11 entity rectangles. Use a double-bordered or associative rectangle for `CENTRE_INVENTORY`.
-2. Underline every PK and mark FKs, for example with a dashed underline or an "FK" tag.
-3. Draw an ISA triangle from `USER` down to `VOLUNTEER_PROFILE`. Label it partial and disjoint,
-   because only users with the VOLUNTEER role have a profile.
-4. Draw `DISASTER — impacts — AFFECTED_ZONE` with a double line on the zone side
-   (total participation).
-5. Show the M:N between `RELIEF_CENTRE` and `RESOURCE_ITEM` with the `CENTRE_INVENTORY`
-   associative entity in the middle.
-6. Use the cardinality labels from report §6.2 on every relationship diamond.
