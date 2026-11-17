@@ -18,17 +18,40 @@ export default function AlertFeed() {
   const [status, setStatus] = useState<"connecting" | "live" | "offline">("connecting");
 
   useEffect(() => {
-    const es = new EventSource("/api/alerts/stream");
-    es.onopen = () => setStatus("live");
-    es.onmessage = (e) => {
-      try {
-        const a = JSON.parse(e.data) as Alert;
-        setAlerts((prev) => [a, ...prev].slice(0, 4));
-      } catch { /* ignore */ }
+    // An open EventSource permanently occupies one of the browser's ~6
+    // HTTP/1.1 connections per host, shared across ALL tabs. With several
+    // tabs open, page loads and client-side navigations would queue forever
+    // behind the streams. So only hold the stream while this tab is visible.
+    let es: EventSource | null = null;
+
+    const connect = () => {
+      if (es) return;
+      setStatus("connecting");
+      es = new EventSource("/api/alerts/stream");
+      es.onopen = () => setStatus("live");
+      es.onmessage = (e) => {
+        try {
+          const a = JSON.parse(e.data) as Alert;
+          setAlerts((prev) => [a, ...prev].slice(0, 4));
+        } catch { /* ignore */ }
+      };
+      es.addEventListener("unavailable", () => setStatus("offline"));
+      es.onerror = () => setStatus("offline");
     };
-    es.addEventListener("unavailable", () => setStatus("offline"));
-    es.onerror = () => setStatus("offline");
-    return () => es.close();
+    const disconnect = () => {
+      es?.close();
+      es = null;
+    };
+    const onVisibility = () => (document.visibilityState === "visible" ? connect() : disconnect());
+
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", disconnect);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", disconnect);
+      disconnect();
+    };
   }, []);
 
   return (
