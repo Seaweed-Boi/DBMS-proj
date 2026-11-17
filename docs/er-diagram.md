@@ -1,7 +1,5 @@
 # Entity–Relationship Model
 
-This diagram covers report §6.3. GitHub renders it directly. You can also paste it into
-<https://mermaid.live> and export a PNG for the report.
 
 - `PK` = primary key, `FK` = foreign key, `UK` = unique.
 - `CENTRE_INVENTORY` is the associative entity that resolves RELIEF_CENTRE M:N RESOURCE_ITEM.
